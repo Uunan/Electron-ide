@@ -1,0 +1,23 @@
+# Node.js
+/node_modules
+
+# Electron-store
+config.json
+*.log
+
+# İşletim Sistemi
+.DS_Store
+Thumbs.db
+
+# Build
+/dist
+/out
+
+# Loglar
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editör
+.vscode
+.idea

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Hesap Yöneticisi</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --bg-deep: #1e1e1e;
+            --bg-medium: #252526;
+            --bg-light: #333333;
+            --border-color: #3c3c3c;
+            --text-primary: #e0e0e0;
+            --text-secondary: #8e8e8e;
+            --accent-blue: #0e639c;
+            --accent-blue-transparent: rgba(14, 99, 156, 0.4);
+            --accent-red: #da5851;
+            --accent-green: #2e8958;
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 2rem;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* YENİLİK: Tüm içeriği saran ana konteyner */
+        .container {
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        /* YENİLİK: Geri butonu ve başlığı içeren yeni header */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .page-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        /* YENİLİK: Geri butonu */
+        .back-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 50%;
+            text-decoration: none;
+            transition: all var(--transition-speed) ease;
+        }
+        .back-button:hover {
+            background-color: #444;
+            transform: scale(1.05);
+            border-color: #555;
+        }
+        .back-button i { font-size: 16px; }
+
+        h1 {
+            font-weight: 500;
+            font-size: 1.75rem;
+            margin: 0;
+        }
+
+        #add-account-btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all var(--transition-speed) ease;
+            box-shadow: 0 4px 12px rgba(14, 99, 156, 0.3);
+        }
+        #add-account-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            filter: brightness(1.1);
+        }
+
+        #accounts-list {
+            display: grid;
+            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        }
+
+        /* YENİLİK: Modernize edilmiş hesap kartları */
+        .account-card {
+            background: var(--bg-medium);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all var(--transition-speed) ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .account-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        .account-card.active {
+            border-color: var(--accent-blue);
+            background-color: #2a3a4a;
+            box-shadow: 0 0 15px var(--accent-blue-transparent);
+        }
+
+        .account-card-header {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+            color: var(--text-primary);
+        }
+        .account-card-user {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            word-break: break-all;
+        }
+        .account-card-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end; /* Butonları sağa yasla */
+            align-items: center;
+            gap: 0.75rem;
+        }
+        /* YENİLİK: Modernize edilmiş butonlar */
+        .account-card-actions button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-light);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all var(--transition-speed) ease;
+        }
+        .account-card-actions button:hover {
+            filter: brightness(1.2);
+            transform: translateY(-2px);
+        }
+        .account-card-actions .remove-btn { background-color: var(--accent-red); color: white; border: none; }
+        .account-card-actions .select-btn { background-color: var(--accent-green); color: white; border: none; }
+        .active-badge { color: var(--accent-blue); font-weight: bold; font-size: 0.9rem; }
+
+        /* YENİLİK: Modernize edilmiş modal ve input alanları */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none;
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        #modal {
+            background: var(--bg-medium);
+            padding: 2rem 2.5rem;
+            border-radius: 12px;
+            width: 450px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+        #modal h2 { margin-top: 0; font-weight: 500; }
+        .form-group { margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.75rem; font-weight: 500; }
+        .form-group input {
+            width: 100%; box-sizing: border-box;
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.8rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all var(--transition-speed) ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px var(--accent-blue-transparent);
+        }
+        .modal-buttons { margin-top: 2rem; text-align: right; display: flex; gap: 1rem; justify-content: flex-end; }
+        .modal-buttons button { padding: 0.7rem 1.5rem; font-size: 1rem; } /* Kart butonlarından miras alır */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- YENİLİK: Yeni Header Yapısı -->
+        <header class="page-header">
+            <div class="page-header-left">
+                <!-- YENİLİK: Geri Butonu -->
+                <a href="index.html" class="back-button" title="Geri Dön">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1>Hesap Yöneticisi</h1>
+            </div>
+            <button id="add-account-btn" title="Yeni Hesap Ekle">
+                <i class="fas fa-plus"></i>
+            </button>
+        </header>
+
+        <main id="accounts-list">
+            <!-- Hesap kartları JS ile buraya eklenecek -->
+        </main>
+    </div>
+
+    <!-- Yeni Hesap Ekleme Modalı (Yapısı aynı, stilleri güncellendi) -->
+    <div id="modal-overlay">
+        <div id="modal">
+            <h2>Yeni cPanel Hesabı</h2>
+            <div class="form-group">
+                <label for="domain">cPanel Domain (örn: https://site.com:2083)</label>
+                <input type="text" id="domain" placeholder="https://ornek.com:2083">
+            </div>
+            <div class="form-group">
+                <label for="username">cPanel Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="kullaniciadi">
+            </div>
+            <div class="form-group">
+                <label for="token">API Token</label>
+                <input type="password" id="token" placeholder="API Token'ınızı buraya yapıştırın">
+            </div>
+            <div class="modal-buttons">
+                <button id="modal-cancel-btn" class="remove-btn">İptal</button>
+                <button id="modal-save-btn" class="select-btn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="accounts.js"></script>
+</body>
+</html>

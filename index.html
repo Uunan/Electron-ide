@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cortex IDE</title>
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- Gerekli CSS Dosyaları -->
+    <link rel="stylesheet" href="./assets/codemirror/lib/codemirror.css">
+    <link rel="stylesheet" href="./assets/codemirror/theme/dracula.css">
+    <link rel="stylesheet" href="./assets/codemirror/addon/fold/foldgutter.css" />
+    <link rel="stylesheet" href="./assets/codemirror/addon/scroll/simplescrollbars.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <style>
+        :root {
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --bg-deep: #1e1e1e; --bg-medium: #252526; --bg-light: #333333;
+            --border-color: #3c3c3c; --text-primary: #e0e0e0; --text-secondary: #8e8e8e;
+            --accent-blue: #0e639c; --accent-blue-transparent: rgba(14, 99, 156, 0.4);
+            --accent-yellow: #dcdcaa; --accent-green: #2e8958; --accent-red: #da5851;
+            --transition-speed: 0.2s;
+        }
+        /* Modern Kaydırma Çubuğu Stilleri */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: rgba(136, 136, 136, 0.4); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: rgba(136, 136, 136, 0.7); }
+        * { scrollbar-width: thin; scrollbar-color: rgba(136, 136, 136, 0.7) transparent; }
+        * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+        html, body { height: 100vh; overflow: hidden; font-family: var(--font-family); background-color: var(--bg-deep); color: var(--text-primary); font-size: 13px; }
+        .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background-color: var(--bg-deep); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; user-select: none; -webkit-app-region: drag; z-index: 999; }
+        .title-bar-left { display: flex; align-items: center; gap: 8px; }
+        
+        /* EKLENDİ: Başlık çubuğundaki logo için stil */
+        .title-bar-logo {
+            height: 20px; /* Başlık çubuğu yüksekliğine uygun bir boyut */
+            width: auto;  /* Orantıyı koru */
+        }
+        
+        .title-bar-left span { font-weight: 500; }
+        .window-controls { display: flex; }
+        .window-controls button { -webkit-app-region: no-drag; background: none; border: none; color: var(--text-secondary); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background-color var(--transition-speed); }
+        .window-controls button:hover { background-color: var(--bg-light); color: var(--text-primary); }
+        #close-btn:hover { background-color: var(--accent-red); color: white; }
+        .app-container { display: flex; flex-direction: column; height: 100%; padding-top: 32px; }
+        .workspace { display: flex; flex-grow: 1; overflow: hidden; }
+        .activity-bar { display: flex; flex-direction: column; justify-content: space-between; align-items: center; background-color: var(--bg-light); width: 50px; padding: 10px 0; flex-shrink: 0; user-select: none; }
+        .activity-bar-icons { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+        .activity-bar button { background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer; width: 100%; padding: 8px 0; position: relative; transition: color var(--transition-speed) ease; }
+        .activity-bar button:hover { color: var(--text-primary); }
+        .activity-bar button.active { color: var(--text-primary); }
+        .activity-bar button.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 2px; height: 60%; background-color: var(--text-primary); }
+        #sidebar { width: 250px; min-width: 180px; background-color: var(--bg-medium); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; flex-shrink: 0; resize: horizontal; overflow: auto; }
+        .sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 15px; height: 35px; flex-shrink: 0; user-select: none; }
+        .sidebar-header h2 { margin: 0; font-size: 11px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; }
+        .sidebar-actions { display: flex; align-items: center; gap: 4px; }
+        .sidebar-actions button { background: none; border: none; color: var(--text-secondary); padding: 4px; border-radius: 4px; cursor: pointer; transition: all var(--transition-speed) ease; }
+        .sidebar-actions button:hover { background-color: var(--bg-light); color: var(--text-primary); }
+        .auto-save-toggle { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); padding: 4px; border-radius: 4px; cursor: pointer; transition: all var(--transition-speed) ease; }
+        .auto-save-toggle:hover { background-color: var(--bg-light); color: var(--text-primary); }
+        .auto-save-toggle .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+        .auto-save-toggle .switch input { display: none; }
+        .auto-save-toggle .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #5a5a5a; transition: .4s; border-radius: 20px; }
+        .auto-save-toggle .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        .auto-save-toggle input:checked + .slider { background-color: var(--accent-green); }
+        .auto-save-toggle input:checked + .slider:before { transform: translateX(14px); }
+        .sidebar-subheader { padding: 5px 15px; user-select: none; cursor: pointer; }
+        #current-directory { font-weight: bold; text-transform: uppercase; font-size: 11px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #file-list { list-style: none; padding: 5px 0 5px 15px; margin: 0; flex-grow: 1; overflow-y: auto; } 
+        #file-list li { padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-radius: 4px; transition: background-color var(--transition-speed) ease; }
+        #file-list li:hover { background-color: #ffffff1a; }
+        #main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .editor-header { display: flex; justify-content: space-between; background-color: var(--bg-medium); flex-shrink: 0; }
+        #tab-bar { display: flex; overflow-x: auto; user-select: none; flex-grow: 1; }
+        .tab { display: flex; align-items: center; gap: 10px; padding: 8px 15px; border-right: 1px solid var(--border-color); background-color: #2d2d2d; color: var(--text-secondary); cursor: pointer; font-size: 13px; white-space: nowrap; }
+        .tab.active { background-color: var(--bg-deep); color: var(--text-primary); border-top: 1px solid var(--accent-yellow); }
+        .close-tab { font-style: normal; font-size: 16px; opacity: 0.6; }
+        .close-tab:hover { opacity: 1; }
+        #editor-toolbar { display: none; align-items: center; gap: 15px; padding: 0 15px; flex-shrink: 0; border-left: 1px solid var(--border-color); }
+        .toolbar-item { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; cursor: pointer; user-select: none; }
+        #encoding-selector { background-color: transparent; color: var(--text-secondary); border: none; font-size: 12px; padding: 2px; cursor: pointer; }
+        #encoding-selector:hover { color: var(--text-primary); }
+        #editor-container { flex-grow: 1; position: relative; }
+        .CodeMirror { position: absolute; top: 0; left: 0; right: 0; bottom: 0; font-size: 14px; height: auto !important; }
+        .CodeMirror-simplescroll-horizontal, .CodeMirror-simplescroll-vertical { background-color: var(--bg-deep); }
+        .CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div { background-color: rgba(136, 136, 136, 0.5); border: none; border-radius: 6px; }
+        .CodeMirror-simplescroll-horizontal div:hover, .CodeMirror-simplescroll-vertical div:hover { background-color: rgba(136, 136, 136, 0.8); }
+        #no-file-message { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: var(--text-secondary); }
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
+        #modal { background: var(--bg-medium); padding: 2rem 2.5rem; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+        #modal-title { margin-top: 0; font-weight: 500; font-size: 1.25rem; }
+        #modal-input { width: 100%; box-sizing: border-box; background: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-primary); padding: 0.8rem; border-radius: 6px; font-size: 1rem; margin-top: 1.5rem; transition: all var(--transition-speed) ease; }
+        #modal-input:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 3px var(--accent-blue-transparent); }
+        .modal-buttons { margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; }
+        .modal-buttons button { padding: 0.7rem 1.5rem; font-size: 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all var(--transition-speed) ease; }
+        #modal-cancel-btn { background-color: var(--bg-light); color: var(--text-primary); }
+        #modal-ok-btn { background-color: var(--accent-blue); color: white; }
+    </style>
+</head>
+<body>
+
+  <div class="title-bar">
+      <div class="title-bar-left">
+          <!-- DEĞİŞTİRİLDİ: Font Awesome ikonu yerine logo.png için <img> etiketi kullanıldı -->
+          <img src="logo.png" alt="Cortex IDE Logo" class="title-bar-logo">
+          <span>Cortex IDE</span>
+      </div>
+      <div class="window-controls">
+          <button id="minimize-btn" title="Alta Al"><i class="far fa-window-minimize"></i></button>
+          <button id="maximize-btn" title="Büyüt/Küçült"><i class="far fa-window-maximize"></i></button>
+          <button id="close-btn" title="Kapat"><i class="fas fa-times"></i></button>
+      </div>
+  </div>
+
+  <!-- Geri kalan her şey aynı -->
+  <div class="app-container">
+    <div class="workspace">
+      <div class="activity-bar">
+        <div class="activity-bar-icons">
+          <button class="active" title="Explorer"><i class="far fa-copy"></i></button>
+          <button title="Accounts" onclick="window.location.href='accounts.html'"><i class="fas fa-users"></i></button>
+        </div>
+        <div class="activity-bar-icons">
+          <button title="Settings" onclick="window.location.href='settings.html'"><i class="fas fa-cog"></i></button>
+        </div>
+      </div>
+      <div id="sidebar">
+        <div class="sidebar-header">
+            <h2>Explorer</h2>
+            <div class="sidebar-actions">
+                <div class="auto-save-toggle" title="Otomatik Kaydetmeyi Aç/Kapat"><i class="fas fa-sync-alt"></i><label class="switch"><input type="checkbox" id="auto-save-toggle"><span class="slider"></span></label></div>
+                <button id="file-upload-btn" title="Dosya Yükle"><i class="fas fa-upload"></i></button>
+                <button id="new-file-btn" title="Yeni Dosya"><i class="fas fa-plus"></i></button>
+                <button id="new-folder-btn" title="Yeni Klasör"><i class="far fa-folder"></i></button>
+            </div>
+        </div>
+        <div class="sidebar-subheader"><div id="current-directory">Yükleniyor...</div></div>
+        <ul id="file-list"></ul>
+      </div>
+      <div id="main-content">
+        <div class="editor-header">
+          <div id="tab-bar"></div>
+          <div id="editor-toolbar">
+            <div class="toolbar-item">
+              <select id="encoding-selector">
+                <option value="utf-8">UTF-8</option>
+                <option value="iso-8859-9">ISO-8859-9</option>
+                <option value="windows-1254">Windows-1254</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div id="editor-container">
+          <div id="no-file-message">Bir dosya açın veya yeni bir tane oluşturun.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-overlay">
+      <div id="modal">
+          <h3 id="modal-title">Başlık</h3>
+          <input type="text" id="modal-input" placeholder="Dosya veya klasör adı...">
+          <div class="modal-buttons">
+              <button id="modal-cancel-btn">İptal</button>
+              <button id="modal-ok-btn">Oluştur</button>
+          </div>
+      </div>
+  </div>
+  
+  <input type="file" id="file-upload-input" style="display: none;" multiple>
+
+  <!-- Scriptler -->
+  <script src="./assets/codemirror/lib/codemirror.js"></script>
+  <script src="./assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+  <script src="./assets/codemirror/mode/xml/xml.js"></script>
+  <script src="./assets/codemirror/mode/javascript/javascript.js"></script>
+  <script src="./assets/codemirror/mode/css/css.js"></script>
+  <script src="./assets/codemirror/mode/clike/clike.js"></script>
+  <script src="./assets/codemirror/mode/php/php.js"></script>
+  <script src="./assets/codemirror/addon/edit/matchbrackets.js"></script>
+  <script src="./assets/codemirror/addon/edit/closetag.js"></script>
+  <script src="./assets/codemirror/addon/fold/foldcode.js"></script>
+  <script src="./assets/codemirror/addon/fold/foldgutter.js"></script>
+  <script src="./assets/codemirror/addon/scroll/simplescrollbars.js"></script>
+  <script src="renderer.js"></script>
+</body>
+</html>

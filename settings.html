@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ayarlar - cPanel Editör</title>
+    <!-- YENİLİK: Navigasyon ikonlarının görünmesi için Font Awesome eklendi -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --bg-deep: #1e1e1e;
+            --bg-medium: #252526;
+            --bg-light: #333333;
+            --border-color: #3c3c3c;
+            --text-primary: #e0e0e0; /* Hafif aydınlatıldı */
+            --text-secondary: #8e8e8e;
+            --accent-blue: #0e639c;
+            --input-bg: #3c3c3c;
+            --transition-speed: 0.2s;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            margin: 0;
+            /* YENİLİK: Sayfayı ortalamak için Flexbox kullanıldı */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* YENİLİK: Tüm ayarlar için ana sarmalayıcı kart */
+        .settings-wrapper {
+            max-width: 900px;
+            width: 100%;
+            background-color: var(--bg-medium);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* YENİLİK: Geri butonu ve başlık için header */
+        .settings-header {
+            display: flex;
+            align-items: center;
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        
+        /* YENİLİK: Geri Butonu Stili */
+        .back-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 50%;
+            text-decoration: none;
+            margin-right: 1.25rem;
+            transition: all var(--transition-speed) ease;
+        }
+        .back-button:hover {
+            background-color: #444;
+            transform: scale(1.05);
+            border-color: #555;
+        }
+        .back-button i {
+            font-size: 16px;
+        }
+
+        h1 {
+            font-weight: 500; /* Daha modern bir görünüm için */
+            font-size: 1.5rem;
+            margin: 0; /* Header'dan boşluk alacak */
+        }
+        
+        h2 {
+            font-weight: 400;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.75rem;
+            margin-top: 0;
+        }
+
+        .settings-container {
+            display: flex;
+            gap: 2.5rem; /* Boşluk artırıldı */
+            padding: 1.75rem; /* İçerik boşluğu */
+        }
+
+        .settings-nav {
+            width: 200px;
+            flex-shrink: 0;
+        }
+        .settings-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            position: sticky; /* Kaydırırken sabit kalması için */
+            top: 20px;
+        }
+        .settings-nav li {
+            display: flex; /* İkon ve metni hizalamak için */
+            align-items: center;
+            gap: 12px; /* İkon ve metin arası boşluk */
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all var(--transition-speed) ease;
+        }
+        .settings-nav li:not(.active):hover {
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+        }
+        .settings-nav li.active {
+            background-color: var(--accent-blue);
+            color: white;
+            box-shadow: 0 4px 12px rgba(14, 99, 156, 0.3);
+        }
+        .settings-nav li i {
+            width: 16px; /* İkonların hizalı durması için */
+            text-align: center;
+        }
+
+        .settings-content {
+            flex-grow: 1;
+        }
+        .settings-page { display: none; }
+        .settings-page.active { display: block; }
+
+        .setting-item {
+            margin-bottom: 2rem; /* Daha fazla dikey boşluk */
+            display: flex;
+            flex-direction: column;
+        }
+        .setting-item label {
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .setting-item small {
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        input[type="text"], input[type="number"], select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.75rem; /* Daha büyük padding */
+            border-radius: 6px;
+            width: 100%;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: all var(--transition-speed) ease;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(14, 99, 156, 0.4);
+        }
+
+        /* Modern Toggle Switch (Mevcut hali iyi, küçük iyileştirmeler) */
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        .switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--bg-light);
+            transition: .4s;
+            border-radius: 28px;
+            border: 1px solid var(--border-color);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px; width: 20px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-wrapper">
+        <header class="settings-header">
+            <!-- YENİLİK: Geri Butonu -->
+            <a href="index.html" class="back-button" title="Geri Dön">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1>Ayarlar</h1>
+        </header>
+        
+        <div class="settings-container">
+            <nav class="settings-nav">
+                <ul>
+                    <li class="active" data-target="editor-page">
+                        <i class="fas fa-pencil-alt"></i> Editör
+                    </li>
+                    <li data-target="app-page">
+                        <i class="fas fa-desktop"></i> Uygulama
+                    </li>
+                </ul>
+            </nav>
+            <main class="settings-content">
+                <!-- Editör Ayarları Sayfası -->
+                <div id="editor-page" class="settings-page active">
+                    <h2>Editör Ayarları</h2>
+                    
+                    <div class="setting-item">
+                        <label for="fontSize">Yazı Tipi Boyutu</label>
+                        <input type="number" id="fontSize" min="8" max="30">
+                        <small>Editördeki varsayılan yazı tipi boyutu (px).</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="tabSize">Tab Boşluğu</label>
+                        <input type="number" id="tabSize" min="2" max="8">
+                        <small>Bir tab karakterinin kaç boşluğa denk geleceği.</small>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="autoSaveInterval">Otomatik Kaydetme</label>
+                        <select id="autoSaveInterval">
+                            <option value="0">Kapalı</option>
+                            <option value="1">1 Saniye</option>
+                            <option value="5">5 Saniye</option>
+                            <option value="10">10 Saniye</option>
+                            <option value="15">15 Saniye</option>
+                            <option value="20">20 Saniye</option>
+                            <option value="25">25 Saniye</option>
+                            <option value="30">30 Saniye</option>
+                            <option value="35">35 Saniye</option>
+                            <option value="40">40 Saniye</option>
+                            <option value="45">45 Saniye</option>
+                            <option value="50">50 Saniye</option>
+                            <option value="55">55 Saniye</option>
+                            <option value="60">60 Saniye</option>
+                        </select>
+                        <small>Dosyadaki değişiklikleri belirli aralıklarla otomatik olarak kaydeder. 'Kapalı' olarak ayarlamak bu özelliği devre dışı bırakır.</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="lineNumbers">Satır Numaraları</label>
+                        <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="lineNumbers">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Göster</span>
+                        </div>
+                        <small>Editörün solunda satır numaralarını göster/gizle.</small>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="wordWrap">Kelime Kaydırma (Word Wrap)</label>
+                         <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="wordWrap">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Aktif</span>
+                        </div>
+                        <small>Uzun satırların ekran dışına taşmasını engelle.</small>
+                    </div>
+
+                     <div class="setting-item">
+                        <label for="autoCloseTags">Otomatik Etiket Kapatma</label>
+                         <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="autoCloseTags">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Aktif</span>
+                        </div>
+                        <small>HTML/XML etiketlerini (örn: `<div>`) otomatik kapatır.</small>
+                    </div>
+                </div>
+
+                <!-- Uygulama Ayarları Sayfası -->
+                <div id="app-page" class="settings-page">
+                    <h2>Uygulama Ayarları</h2>
+
+                     <div class="setting-item">
+                        <label for="initialDir">Başlangıç Dizini</label>
+                        <input type="text" id="initialDir">
+                        <small>Uygulama açıldığında hangi dizinin listeleneceği (örn: /home/kullaniciadi/public_html).</small>
+                    </div>
+
+                     <div class="setting-item">
+                        <label for="rejectUnauthorized">SSL Sertifika Doğrulaması</label>
+                         <div class="toggle-switch">
+                            <label class="switch">
+                                <input type="checkbox" id="rejectUnauthorized">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Doğrulamayı Zorla (Güvenli)</span>
+                        </div>
+                        <small>Geçersiz SSL sertifikalarına sahip sunuculara bağlantıyı engeller. Geliştirme için kapatılabilir.</small>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Bu sayfanın mantığını yönetecek JS dosyası -->
+    <script src="settings.js"></script>
+</body>
+</html>

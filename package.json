@@ -1,0 +1,28 @@
+{
+  "name": "electron",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^36.6.0"
+  },
+  "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/lang-php": "^6.0.1",
+    "@codemirror/view": "^6.37.2",
+    "axios": "^1.9.0",
+    "codemirror": "^5.65.19",
+    "electron-store": "^10.1.0",
+    "form-data": "^4.0.3",
+    "ssh2-sftp-client": "^12.0.0"
+  }
+}
