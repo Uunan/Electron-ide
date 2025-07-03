@@ -21,3 +21,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     encryptString: (text) => ipcRenderer.invoke('encrypt-string', text),
     decryptString: (hash) => ipcRenderer.invoke('decrypt-string', hash),
 });
+
+

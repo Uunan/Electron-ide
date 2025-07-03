@@ -1,4 +1,6 @@
-// main.js - Stabil CommonJS Sürümü (Yeni Dosya Yollarıyla)
+// main.js - Otomatik Güncelleme Kontrollü Versiyon
+
+// --- GEREKLİ MODÜLLER ---
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const axios = require('axios');
@@ -8,10 +10,24 @@ const { Readable } = require('stream');
 const crypto = require('crypto');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
+const log = require('electron-log'); // Hata ayıklama için loglama
 
 // --- UYGULAMA GENELİ DEĞİŞKENLER ---
 const store = new Store();
 let mainWindow;
+
+// --- OTOMATİK GÜNCELLEME AYARLARI ---
+// Güncelleme sürecini log dosyasına yazdırarak hata ayıklamayı kolaylaştırır.
+// Log dosyası konumu:
+// Windows: %APPDATA%\uunan-ide\logs\main.log
+// macOS: ~/Library/Logs/uunan-ide/main.log
+autoUpdater.logger = log;
+autoUpdater.logger.transports.file.level = 'info';
+
+// Güncelleme bulununca otomatik indirmeyi devre dışı bırak.
+// Kontrolü tamamen bize bırakır.
+autoUpdater.autoDownload = false;
+
 
 // --- ŞİFRELEME KODU ---
 let secretKey = store.get('secretKey');
@@ -41,7 +57,7 @@ function decrypt(hash) {
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
     return decrypted.toString('utf8');
   } catch (error) {
-    console.error("Şifre çözme hatası:", error);
+    log.error("Şifre çözme hatası:", error);
     return null;
   }
 }
@@ -55,17 +71,15 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200, height: 800,
         frame: false,
-        icon: path.join(__dirname, 'build/icon.png'),
+        icon: path.join(__dirname, '/build/icon.png'), // Düzeltme: __dirname kök dizin olduğu için ../build/
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            // YOL GÜNCELLENDİ
-            preload: path.join(__dirname, 'src/preload.js') 
+            preload: path.join(__dirname, '/src/preload.js') // Düzeltme: main.js ile aynı dizinde olduğunu varsayıyorum
         }
     });
 
-    // YOL GÜNCELLENDİ
-    mainWindow.loadFile(path.join(__dirname, 'src/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '/src/index.html')); // Düzeltme: ../src/
     
     mainWindow.on('maximize', () => mainWindow.webContents.send('window-maximized-status', true));
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-maximized-status', false));
@@ -74,25 +88,72 @@ function createWindow() {
 // --- UYGULAMA YAŞAM DÖNGÜSÜ ---
 app.whenReady().then(() => {
   createWindow();
+
+  // Pencere oluşturulduktan hemen sonra güncelleme kontrolünü başlat.
+  // Bu işlem arka planda sessizce çalışır.
+  log.info('Uygulama başlatıldı, güncellemeler kontrol ediliyor...');
   autoUpdater.checkForUpdates();
+  
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
 // --- OTOMATİK GÜNCELLEME OLAYLARI ---
-autoUpdater.on('update-downloaded', (info) => {
-  const dialogOpts = {
-      type: 'info',
-      buttons: ['Yeniden Başlat', 'Sonra'],
-      title: 'Uygulama Güncellemesi',
-      message: `Uunan IDE'nin yeni sürümü (${info.version}) indirildi.`,
-      detail: 'Değişikliklerin uygulanması için uygulamanın yeniden başlatılması gerekiyor.'
-  };
-  dialog.showMessageBox(dialogOpts).then((returnValue) => {
-      if (returnValue.response === 0) autoUpdater.quitAndInstall();
-  });
+
+// YENİ: Güncelleme bulunduğunda tetiklenir.
+autoUpdater.on('update-available', (info) => {
+    log.info(`Güncelleme bulundu: ${info.version}`);
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Güncelleme Mevcut',
+        message: `Uygulamanın yeni bir sürümü (${info.version}) mevcut.`,
+        detail: 'Güncellemeyi şimdi indirmek ister misiniz?',
+        buttons: ['Evet, İndir', 'Hayır, Sonra']
+    }).then(({ response }) => {
+        if (response === 0) { // Evet, İndir tıklandı
+            log.info('Kullanıcı indirmeyi onayladı. İndirme başlatılıyor...');
+            autoUpdater.downloadUpdate();
+        } else {
+            log.info('Kullanıcı güncellemeyi erteledi.');
+        }
+    });
 });
+
+// YENİ: Güncelleme bulunamadığında tetiklenir.
+autoUpdater.on('update-not-available', (info) => {
+    log.info('Güncelleme bulunamadı, uygulama güncel.');
+    dialog.showMessageBox({
+        type: 'info',
+        title: 'Her Şey Yolunda',
+        message: 'Uygulamanız zaten en güncel sürümde.'
+    });
+});
+
+// MEVCUT: Güncelleme indirildiğinde tetiklenir.
+autoUpdater.on('update-downloaded', (info) => {
+    log.info(`Güncelleme indirildi: ${info.version}`);
+    const dialogOpts = {
+        type: 'info',
+        buttons: ['Yeniden Başlat', 'Daha Sonra'],
+        title: 'Uygulama Güncellemesi',
+        message: `Uunan IDE'nin yeni sürümü (${info.version}) indirildi.`,
+        detail: 'Değişikliklerin uygulanması için uygulamanın yeniden başlatılması gerekiyor.'
+    };
+    dialog.showMessageBox(dialogOpts).then(({ response }) => {
+        if (response === 0) { // Yeniden Başlat tıklandı
+            log.info('Uygulama güncelleme için yeniden başlatılıyor.');
+            autoUpdater.quitAndInstall();
+        }
+    });
+});
+
+// YENİ: Güncelleme sırasında bir hata oluştuğunda tetiklenir.
+autoUpdater.on('error', (err) => {
+    log.error('Otomatik güncelleme hatası: ', err);
+    dialog.showErrorBox('Güncelleme Hatası', 'Güncellemeler kontrol edilirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.\n\nHata: ' + err.message);
+});
+
 
 // --- IPC KANALLARI (TAMAMI) ---
 ipcMain.on('minimize-app', (event) => BrowserWindow.fromWebContents(event.sender)?.minimize());
