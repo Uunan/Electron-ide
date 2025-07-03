@@ -1,19 +1,15 @@
-// renderer.js (ŞİFRELEME DESTEKLİ TAM KOD)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Paylaşılan Ayar ve Hesap Yapılandırması ---
     const SETTINGS_KEY = 'cpanel-editor-settings';
     const ACCOUNTS_KEY = 'cpanel-accounts';
     const defaultSettings = { fontSize: 14, tabSize: 4, lineNumbers: true, wordWrap: false, autoCloseTags: true, initialDir: '/home/ugurhancolak', rejectUnauthorized: false, autoSaveInterval: 0 };
 
-    // --- State (Durum) Değişkenleri ---
     const openFiles = new Map();
     let currentSettings = {};
     let activeFilePath = null;
     let currentDirectory = '/';
     let autoSaveTimer = null;
 
-    // --- DOM Referansları ---
     const fileListElement = document.getElementById('file-list');
     const currentDirectoryElement = document.getElementById('current-directory');
     const newFileBtn = document.getElementById('new-file-btn');
@@ -38,9 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function getBasename(filePath) { return filePath.substring(filePath.lastIndexOf('/') + 1); }
 
-    // --- YARDIMCI FONKSİYONLAR ---
-
-    // GÜNCELLENDİ: Artık asenkron ve şifre çözüyor
+ 
     async function getActiveCredentials() {
         const accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
         const activeAccount = accounts.find(acc => acc.isActive);
@@ -77,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function saveSettings(settings) { 
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); 
-        // Ayarlar değiştiğinde diğer pencereleri bilgilendir
         window.electronAPI.send('setting-changed', settings); 
     }
 
@@ -96,7 +89,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }); 
     }
 
-    // GÜNCELLENDİ: Artık asenkron
     async function saveActiveFile(force = false) {
         const credentials = await getActiveCredentials(); 
         if (!credentials || !activeFilePath || !openFiles.has(activeFilePath)) return; 
@@ -135,13 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function activateTab(filePath) { tabBarElement.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active')); editorContainerWrapperElement.querySelectorAll('.editor-instance').forEach(editorDiv => editorDiv.classList.remove('active')); const fileInfo = openFiles.get(filePath); if (fileInfo) { fileInfo.tabElement.classList.add('active'); fileInfo.editorContainerElement.classList.add('active'); setTimeout(() => fileInfo.codeMirrorInstance.refresh(), 50); activeFilePath = filePath; noFileMessageElement.style.display = 'none'; editorToolbar.style.display = 'flex'; encodingSelector.value = fileInfo.currentCharset; } else { activeFilePath = null; noFileMessageElement.style.display = 'block'; editorToolbar.style.display = 'none'; } }
     function closeTab(filePath) { const fileInfo = openFiles.get(filePath); if (fileInfo) { fileInfo.tabElement.remove(); fileInfo.editorContainerElement.remove(); openFiles.delete(filePath); if (activeFilePath === filePath) { const remainingFiles = Array.from(openFiles.keys()); activateTab(remainingFiles.length > 0 ? remainingFiles[0] : null); } } }
 
-    // --- IPC CEVAPLARI ---
     window.electronAPI.on('settings-updated', (settings) => applySettings());
     window.electronAPI.on('files-listed', ({ success, files, error, currentDir }) => { fileListElement.innerHTML = ''; currentDirectoryElement.textContent = currentDir; if (!success) { fileListElement.innerHTML = `<li>Hata: ${error}</li>`; return; } currentDirectory = currentDir; const rootDir = currentSettings.initialDir; if (currentDir !== rootDir && currentDir.length >= rootDir.length) { const parentDir = currentDir.substring(0, currentDir.lastIndexOf('/')) || rootDir; if (parentDir.length >= rootDir.length) { const backItem = document.createElement('li'); backItem.innerHTML = `<i class="fas fa-level-up-alt"></i> ..`; backItem.classList.add('directory'); backItem.dataset.path = parentDir; fileListElement.appendChild(backItem); } } files.sort((a, b) => { if (a.type === b.type) return a.file.localeCompare(b.file); return a.type === 'dir' ? -1 : 1; }).forEach(item => { const li = document.createElement('li'); li.dataset.path = item.fullpath; if (item.type === 'dir') { li.innerHTML = `<i class="far fa-folder"></i> ${item.file}`; li.classList.add('directory'); } else { li.innerHTML = `<i class="far fa-file-alt"></i> ${item.file}`; li.classList.add('file'); } fileListElement.appendChild(li); }); });
     window.electronAPI.on('file-content-loaded', ({ success, content, error, filePath, charset }) => { const fileInfo = openFiles.get(filePath); if (!fileInfo) return; if (success) { fileInfo.codeMirrorInstance.setValue(content); fileInfo.currentCharset = charset; if (activeFilePath === filePath) encodingSelector.value = charset; } else { fileInfo.codeMirrorInstance.setValue(`-- HATA --\nDosya içeriği yüklenemedi: ${JSON.stringify(error)}`); }});
     window.electronAPI.on('file-saved', ({ success, error, filePath }) => { if (success && openFiles.has(filePath)) { openFiles.get(filePath).tabElement.querySelector('.tab-label').style.fontStyle = 'normal'; }});
     
-    // GÜNCELLENDİ: Artık asenkron
     window.electronAPI.on('item-created', async ({ success, error, dir }) => { 
         if (success) { 
             const credentials = await getActiveCredentials(); 
@@ -151,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // GÜNCELLENDİ: Artık asenkron
     window.electronAPI.on('file-uploaded', async ({ success, error, fileName, targetDir }) => { 
         if (success) { 
             if (targetDir === currentDirectory) { 
@@ -169,9 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         else { icon.classList.remove('fa-window-restore'); icon.classList.add('fa-window-maximize'); }
     });
 
-    // --- OLAY DİNLEYİCİLERİ ---
-    
-    // GÜNCELLENDİ: Artık asenkron
+   
     fileListElement.addEventListener('click', async (event) => {
         const target = event.target.closest('li');
         if (!target || !target.dataset.path) return;
@@ -210,12 +197,10 @@ document.addEventListener('DOMContentLoaded', () => {
     encodingSelector.addEventListener('change', () => saveActiveFile(true));
     autoSaveToggle.addEventListener('change', (event) => { const newSettings = loadSettings(); if (event.target.checked) { if (newSettings.autoSaveInterval === 0) newSettings.autoSaveInterval = 5; } else { newSettings.autoSaveInterval = 0; } saveSettings(newSettings); applySettings(); });
     
-    // GÜNCELLENDİ: Artık asenkron
     newFileBtn.addEventListener('click', () => showPromptModal('Yeni Dosya Oluştur', async (name) => { if (name) { const credentials = await getActiveCredentials(); if(credentials) window.electronAPI.send('create-item', { type: 'file', dir: currentDirectory, name, credentials }); }}));
     newFolderBtn.addEventListener('click', () => showPromptModal('Yeni Klasör Oluştur', async (name) => { if (name) { const credentials = await getActiveCredentials(); if(credentials) window.electronAPI.send('create-item', { type: 'dir', dir: currentDirectory, name, credentials }); }}));
     fileUploadBtn.addEventListener('click', () => fileUploadInput.click());
     
-    // GÜNCELLENDİ: Artık asenkron
     fileUploadInput.addEventListener('change', async (event) => { 
         const credentials = await getActiveCredentials(); 
         if (!credentials) return; 
@@ -239,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
     maximizeBtn.addEventListener('click', () => window.electronAPI.maximize());
     closeBtn.addEventListener('click', () => window.electronAPI.close());
     
-    // --- BAŞLANGIÇ MANTIĞI ---
     async function initializeApp() {
         noFileMessageElement.style.display = 'block';
         applySettings();

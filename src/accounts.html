@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Hesap Yöneticisi</title>
-    <!-- Font Awesome hem title bar hem de sayfa ikonları için gerekli -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         :root {
@@ -21,13 +20,12 @@
             --transition-speed: 0.3s;
         }
 
-        /* --- YENİ EKLENDİ: Başlık Çubuğu Stilleri --- */
         .title-bar {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 32px; /* Başlık çubuğu yüksekliği */
+            height: 32px; 
             background-color: var(--bg-deep);
             border-bottom: 1px solid var(--border-color);
             display: flex;
@@ -35,14 +33,14 @@
             justify-content: space-between;
             padding: 0 10px;
             user-select: none;
-            -webkit-app-region: drag; /* Pencereyi buradan sürükle */
+            -webkit-app-region: drag;
             z-index: 999;
         }
         .title-bar-left {
             display: flex;
             align-items: center;
             gap: 8px;
-            -webkit-app-region: no-drag; /* Bu alanı sürüklenemez yap */
+            -webkit-app-region: no-drag;
         }
         .title-bar-logo {
             height: 20px;
@@ -55,7 +53,7 @@
             display: flex;
         }
         .window-controls button {
-            -webkit-app-region: no-drag; /* Butonları tıklanabilir yap */
+            -webkit-app-region: no-drag; 
             background: none;
             border: none;
             color: var(--text-secondary);
@@ -75,7 +73,6 @@
             background-color: var(--accent-red);
             color: white;
         }
-        /* --- Başlık Çubuğu Stilleri Bitti --- */
 
         body {
             font-family: var(--font-family);
@@ -86,7 +83,6 @@
             display: flex;
             justify-content: center;
 
-            /* DEĞİŞİKLİK: Başlık çubuğu için üstte boşluk bırak */
             padding: calc(32px + 2rem) 2rem 2rem 2rem;
         }
 
@@ -202,22 +198,18 @@
 </head>
 <body>
 
-    <!-- YENİ EKLENDİ: Başlık Çubuğu HTML Kodu -->
-    <!-- Projenizin ana dizininde 'logo.png' adında bir dosya olduğundan emin olun -->
     <div class="title-bar">
         <div class="title-bar-left">
             <img src="logo.png" alt="Uunan IDE Logo" class="title-bar-logo">
             <span>Hesap Yöneticisi</span>
         </div>
         <div class="window-controls">
-            <!-- Bu butonların çalışması için renderer/preload tarafında IPC eventleri tanımlanmalı -->
             <button id="minimize-btn" title="Alta Al"><i class="far fa-window-minimize"></i></button>
             <button id="maximize-btn" title="Büyüt/Küçült"><i class="far fa-window-maximize"></i></button>
             <button id="close-btn" title="Kapat"><i class="fas fa-times"></i></button>
         </div>
     </div>
 
-    <!-- Mevcut Sayfa İçeriği -->
     <div class="container">
         <header class="page-header">
             <div class="page-header-left">
@@ -232,7 +224,6 @@
         </header>
 
         <main id="accounts-list">
-            <!-- Hesap kartları JS ile buraya eklenecek -->
         </main>
     </div>
 
@@ -258,7 +249,6 @@
         </div>
     </div>
 
-    <!-- accounts.js scripti tüm mantığı çalıştıracak -->
     <script src="accounts.js"></script>
 </body>
 </html>

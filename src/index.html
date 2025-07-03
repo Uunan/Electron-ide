@@ -5,7 +5,6 @@
     <title>Cortex IDE</title>
     <link rel="icon" type="image/png" href="logo.png">
 
-    <!-- Gerekli CSS Dosyaları -->
     <link rel="stylesheet" href="./assets/codemirror/lib/codemirror.css">
     <link rel="stylesheet" href="./assets/codemirror/theme/dracula.css">
     <link rel="stylesheet" href="./assets/codemirror/addon/fold/foldgutter.css" />
@@ -21,7 +20,6 @@
             --accent-yellow: #dcdcaa; --accent-green: #2e8958; --accent-red: #da5851;
             --transition-speed: 0.2s;
         }
-        /* Modern Kaydırma Çubuğu Stilleri */
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: rgba(136, 136, 136, 0.4); border-radius: 10px; }
@@ -31,11 +29,9 @@
         html, body { height: 100vh; overflow: hidden; font-family: var(--font-family); background-color: var(--bg-deep); color: var(--text-primary); font-size: 13px; }
         .title-bar { position: fixed; top: 0; left: 0; right: 0; height: 32px; background-color: var(--bg-deep); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 10px; user-select: none; -webkit-app-region: drag; z-index: 999; }
         .title-bar-left { display: flex; align-items: center; gap: 8px; }
-        
-        /* EKLENDİ: Başlık çubuğundaki logo için stil */
         .title-bar-logo {
-            height: 20px; /* Başlık çubuğu yüksekliğine uygun bir boyut */
-            width: auto;  /* Orantıyı koru */
+            height: 20px; 
+            width: auto;  
         }
         
         .title-bar-left span { font-weight: 500; }
@@ -102,7 +98,6 @@
 
   <div class="title-bar">
       <div class="title-bar-left">
-          <!-- DEĞİŞTİRİLDİ: Font Awesome ikonu yerine logo.png için <img> etiketi kullanıldı -->
           <img src="logo.png" alt="Cortex IDE Logo" class="title-bar-logo">
           <span>Cortex IDE</span>
       </div>
@@ -113,7 +108,6 @@
       </div>
   </div>
 
-  <!-- Geri kalan her şey aynı -->
   <div class="app-container">
     <div class="workspace">
       <div class="activity-bar">
@@ -171,7 +165,6 @@
   
   <input type="file" id="file-upload-input" style="display: none;" multiple>
 
-  <!-- Scriptler -->
   <script src="./assets/codemirror/lib/codemirror.js"></script>
   <script src="./assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
   <script src="./assets/codemirror/mode/xml/xml.js"></script>

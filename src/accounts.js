@@ -1,53 +1,40 @@
-// accounts.js (Başlık Çubuğu İşlevselliği Eklenmiş Versiyon)
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- YENİ EKLENDİ: Başlık Çubuğu Butonlarının İşlevselliği ---
     const minimizeBtn = document.getElementById('minimize-btn');
     const maximizeBtn = document.getElementById('maximize-btn');
     const closeBtn = document.getElementById('close-btn');
 
-    // "Alta Al" butonu
     minimizeBtn.addEventListener('click', () => {
-        // preload.js'de tanımlanan 'minimize' fonksiyonunu çağır
         window.electronAPI.minimize();
     });
 
-    // "Büyüt/Küçült" butonu
     maximizeBtn.addEventListener('click', () => {
-        // preload.js'de tanımlanan 'maximize' fonksiyonunu çağır
         window.electronAPI.maximize();
     });
 
-    // "Kapat" butonu
     closeBtn.addEventListener('click', () => {
-        // preload.js'de tanımlanan 'close' fonksiyonunu çağır
         window.electronAPI.close();
     });
 
-    // Pencere durumu değiştiğinde (büyütüldü/küçültüldü) ikonu güncellemek için
     window.electronAPI.onWindowMaximizedStatus((isMaximized) => {
         const maximizeIcon = maximizeBtn.querySelector('i');
         if (isMaximized) {
-            // Pencere tam ekran ise, "küçült" (restore) ikonunu göster
             maximizeIcon.classList.remove('fa-window-maximize');
             maximizeIcon.classList.add('fa-window-restore');
             maximizeBtn.title = 'Küçült';
         } else {
-            // Pencere normal boyutta ise, "büyüt" (maximize) ikonunu göster
             maximizeIcon.classList.remove('fa-window-restore');
             maximizeIcon.classList.add('fa-window-maximize');
             maximizeBtn.title = 'Büyüt';
         }
     });
-    // --- YENİ EKLENEN KOD BİTTİ ---
 
 
 
-    // --- MEVCUT HESAP YÖNETİMİ KODUNUZ (DEĞİŞİKLİK YOK) ---
+
     const ACCOUNTS_KEY = 'cpanel-accounts';
 
-    // DOM Elementleri
     const accountsList = document.getElementById('accounts-list');
     const addAccountBtn = document.getElementById('add-account-btn');
     const modalOverlay = document.getElementById('modal-overlay');
@@ -57,11 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const usernameInput = document.getElementById('username');
     const tokenInput = document.getElementById('token');
 
-    // Veri Fonksiyonları
     const loadAccounts = () => JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || [];
     const saveAccounts = (accounts) => localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
 
-    // Arayüzü Yenileme Fonksiyonu
     function renderAccounts() {
         accountsList.innerHTML = '';
         const accounts = loadAccounts();
@@ -93,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Olay Dinleyicileri
     accountsList.addEventListener('click', (e) => {
         const card = e.target.closest('.account-card');
         if (!card) return;

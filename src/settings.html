@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Ayarlar - cPanel Editör</title>
-    <!-- YENİLİK: Navigasyon ikonlarının görünmesi için Font Awesome eklendi -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
         :root {
@@ -12,7 +11,7 @@
             --bg-medium: #252526;
             --bg-light: #333333;
             --border-color: #3c3c3c;
-            --text-primary: #e0e0e0; /* Hafif aydınlatıldı */
+            --text-primary: #e0e0e0; 
             --text-secondary: #8e8e8e;
             --accent-blue: #0e639c;
             --input-bg: #3c3c3c;
@@ -24,7 +23,7 @@
             background-color: var(--bg-deep);
             color: var(--text-primary);
             margin: 0;
-            /* YENİLİK: Sayfayı ortalamak için Flexbox kullanıldı */
+   
             display: flex;
             justify-content: center;
             align-items: center;
@@ -34,7 +33,7 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* YENİLİK: Tüm ayarlar için ana sarmalayıcı kart */
+    
         .settings-wrapper {
             max-width: 900px;
             width: 100%;
@@ -47,7 +46,7 @@
             flex-direction: column;
         }
 
-        /* YENİLİK: Geri butonu ve başlık için header */
+
         .settings-header {
             display: flex;
             align-items: center;
@@ -55,8 +54,7 @@
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
-        
-        /* YENİLİK: Geri Butonu Stili */
+
         .back-button {
             display: flex;
             align-items: center;
@@ -81,9 +79,9 @@
         }
 
         h1 {
-            font-weight: 500; /* Daha modern bir görünüm için */
+            font-weight: 500;
             font-size: 1.5rem;
-            margin: 0; /* Header'dan boşluk alacak */
+            margin: 0; 
         }
         
         h2 {
@@ -96,8 +94,8 @@
 
         .settings-container {
             display: flex;
-            gap: 2.5rem; /* Boşluk artırıldı */
-            padding: 1.75rem; /* İçerik boşluğu */
+            gap: 2.5rem;
+            padding: 1.75rem; 
         }
 
         .settings-nav {
@@ -108,13 +106,13 @@
             list-style: none;
             padding: 0;
             margin: 0;
-            position: sticky; /* Kaydırırken sabit kalması için */
+            position: sticky;
             top: 20px;
         }
         .settings-nav li {
-            display: flex; /* İkon ve metni hizalamak için */
+            display: flex; 
             align-items: center;
-            gap: 12px; /* İkon ve metin arası boşluk */
+            gap: 12px; 
             padding: 0.75rem 1rem;
             cursor: pointer;
             border-radius: 6px;
@@ -133,7 +131,7 @@
             box-shadow: 0 4px 12px rgba(14, 99, 156, 0.3);
         }
         .settings-nav li i {
-            width: 16px; /* İkonların hizalı durması için */
+            width: 16px; 
             text-align: center;
         }
 
@@ -144,7 +142,7 @@
         .settings-page.active { display: block; }
 
         .setting-item {
-            margin-bottom: 2rem; /* Daha fazla dikey boşluk */
+            margin-bottom: 2rem; 
             display: flex;
             flex-direction: column;
         }
@@ -164,7 +162,7 @@
             background-color: var(--input-bg);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 0.75rem; /* Daha büyük padding */
+            padding: 0.75rem; 
             border-radius: 6px;
             width: 100%;
             font-size: 14px;
@@ -177,7 +175,7 @@
             box-shadow: 0 0 0 3px rgba(14, 99, 156, 0.4);
         }
 
-        /* Modern Toggle Switch (Mevcut hali iyi, küçük iyileştirmeler) */
+      
         .toggle-switch {
             display: flex;
             align-items: center;
@@ -220,7 +218,7 @@
 <body>
     <div class="settings-wrapper">
         <header class="settings-header">
-            <!-- YENİLİK: Geri Butonu -->
+          
             <a href="index.html" class="back-button" title="Geri Dön">
                 <i class="fas fa-arrow-left"></i>
             </a>
@@ -239,7 +237,7 @@
                 </ul>
             </nav>
             <main class="settings-content">
-                <!-- Editör Ayarları Sayfası -->
+            
                 <div id="editor-page" class="settings-page active">
                     <h2>Editör Ayarları</h2>
                     
@@ -313,7 +311,6 @@
                     </div>
                 </div>
 
-                <!-- Uygulama Ayarları Sayfası -->
                 <div id="app-page" class="settings-page">
                     <h2>Uygulama Ayarları</h2>
 
@@ -339,7 +336,6 @@
         </div>
     </div>
 
-    <!-- Bu sayfanın mantığını yönetecek JS dosyası -->
     <script src="settings.js"></script>
 </body>
 </html>

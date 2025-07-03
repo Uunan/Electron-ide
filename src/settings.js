@@ -1,10 +1,6 @@
-// settings.js (Düzeltilmiş ve Çalışan Tam Kod)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Hatalı Satır Kaldırıldı ---
-    // const { ipcRenderer } = require('electron'); // BU SATIR KALDIRILDI!
-
-    // Tüm ayar input elemanlarını seç
+  
     const inputs = {
         fontSize: document.getElementById('fontSize'),
         tabSize: document.getElementById('tabSize'),
@@ -26,19 +22,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadSettings() {
         const savedSettings = localStorage.getItem(SETTINGS_KEY);
-        // JSON.parse'dan null gelme ihtimaline karşı kontrol ekleyelim
         const parsedSettings = savedSettings ? JSON.parse(savedSettings) : {};
         return { ...defaultSettings, ...parsedSettings };
     }
 
-    // GÜNCELLENDİ: saveSettings fonksiyonu artık doğru IPC yöntemini kullanacak
     function saveSettings(settings) {
         localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
         console.log('Ayarlar kaydedildi ve ana sürece gönderiliyor:', settings);
 
-        // --- DOĞRU YÖNTEM ---
-        // 'window.electronAPI' preload script'i üzerinden ana sürece bildir.
-        // Bu, `renderer.js` dosyanızdaki yöntemle aynıdır.
+
         if (window.electronAPI) {
             window.electronAPI.send('setting-changed', settings);
         } else {
@@ -51,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function populateUI() {
         for (const key in inputs) {
             const inputElement = inputs[key];
-            if (inputElement && currentSettings.hasOwnProperty(key)) { // Ekstra güvenlik kontrolü
+            if (inputElement && currentSettings.hasOwnProperty(key)) { 
                 if (inputElement.type === 'checkbox') {
                     inputElement.checked = currentSettings[key];
                 } else {
@@ -65,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const key = event.target.id;
         const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
         
-        // Gelen değerin sayısal olması gereken alanlar için parseInt kullanılıyor
         if (event.target.type === 'number' || key === 'autoSaveInterval') {
             currentSettings[key] = parseInt(value, 10);
         } else {
@@ -75,14 +66,12 @@ document.addEventListener('DOMContentLoaded', () => {
         saveSettings(currentSettings);
     }
 
-    // Tüm inputlara 'change' olay dinleyicisi ekle
     for (const key in inputs) {
         if (inputs[key]) {
             inputs[key].addEventListener('change', handleInputChange);
         }
     }
     
-    // Sayfa içi sekmeler arası geçiş mantığı (bu kısım doğruydu)
     const navItems = document.querySelectorAll('.settings-nav li');
     const pages = document.querySelectorAll('.settings-page');
     navItems.forEach(item => {
@@ -94,6 +83,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Başlangıçta arayüzü doldur
     populateUI();
 });

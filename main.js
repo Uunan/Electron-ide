@@ -10,26 +10,19 @@ const { Readable } = require('stream');
 const crypto = require('crypto');
 const Store = require('electron-store');
 const { autoUpdater } = require('electron-updater');
-const log = require('electron-log'); // Hata ayıklama için loglama
+const log = require('electron-log'); 
 
-// --- UYGULAMA GENELİ DEĞİŞKENLER ---
 const store = new Store();
 let mainWindow;
 
-// --- OTOMATİK GÜNCELLEME AYARLARI ---
-// Güncelleme sürecini log dosyasına yazdırarak hata ayıklamayı kolaylaştırır.
-// Log dosyası konumu:
-// Windows: %APPDATA%\uunan-ide\logs\main.log
-// macOS: ~/Library/Logs/uunan-ide/main.log
+
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
 
-// Güncelleme bulununca otomatik indirmeyi devre dışı bırak.
-// Kontrolü tamamen bize bırakır.
+
 autoUpdater.autoDownload = false;
 
 
-// --- ŞİFRELEME KODU ---
 let secretKey = store.get('secretKey');
 if (!secretKey) {
   secretKey = crypto.randomBytes(32).toString('hex');
@@ -62,20 +55,18 @@ function decrypt(hash) {
   }
 }
 
-// --- YARDIMCI FONKSİYONLAR ---
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 function toPosixPath(p) { return p.replace(/\\/g, '/'); }
 
-// --- ANA PENCERE OLUŞTURMA ---
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200, height: 800,
         frame: false,
-        icon: path.join(__dirname, '/build/icon.png'), // Düzeltme: __dirname kök dizin olduğu için ../build/
+        icon: path.join(__dirname, '/build/icon.png'), 
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, '/src/preload.js') // Düzeltme: main.js ile aynı dizinde olduğunu varsayıyorum
+            preload: path.join(__dirname, '/src/preload.js') 
         }
     });
 
@@ -85,12 +76,11 @@ function createWindow() {
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-maximized-status', false));
 }
 
-// --- UYGULAMA YAŞAM DÖNGÜSÜ ---
+
 app.whenReady().then(() => {
   createWindow();
 
-  // Pencere oluşturulduktan hemen sonra güncelleme kontrolünü başlat.
-  // Bu işlem arka planda sessizce çalışır.
+ 
   log.info('Uygulama başlatıldı, güncellemeler kontrol ediliyor...');
   autoUpdater.checkForUpdates();
   
@@ -99,9 +89,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 
-// --- OTOMATİK GÜNCELLEME OLAYLARI ---
-
-// YENİ: Güncelleme bulunduğunda tetiklenir.
 autoUpdater.on('update-available', (info) => {
     log.info(`Güncelleme bulundu: ${info.version}`);
     dialog.showMessageBox({
@@ -120,7 +107,7 @@ autoUpdater.on('update-available', (info) => {
     });
 });
 
-// YENİ: Güncelleme bulunamadığında tetiklenir.
+
 autoUpdater.on('update-not-available', (info) => {
     log.info('Güncelleme bulunamadı, uygulama güncel.');
     dialog.showMessageBox({
@@ -130,7 +117,6 @@ autoUpdater.on('update-not-available', (info) => {
     });
 });
 
-// MEVCUT: Güncelleme indirildiğinde tetiklenir.
 autoUpdater.on('update-downloaded', (info) => {
     log.info(`Güncelleme indirildi: ${info.version}`);
     const dialogOpts = {
@@ -141,21 +127,19 @@ autoUpdater.on('update-downloaded', (info) => {
         detail: 'Değişikliklerin uygulanması için uygulamanın yeniden başlatılması gerekiyor.'
     };
     dialog.showMessageBox(dialogOpts).then(({ response }) => {
-        if (response === 0) { // Yeniden Başlat tıklandı
+        if (response === 0) {
             log.info('Uygulama güncelleme için yeniden başlatılıyor.');
             autoUpdater.quitAndInstall();
         }
     });
 });
 
-// YENİ: Güncelleme sırasında bir hata oluştuğunda tetiklenir.
 autoUpdater.on('error', (err) => {
     log.error('Otomatik güncelleme hatası: ', err);
     dialog.showErrorBox('Güncelleme Hatası', 'Güncellemeler kontrol edilirken bir hata oluştu. Lütfen internet bağlantınızı kontrol edin veya daha sonra tekrar deneyin.\n\nHata: ' + err.message);
 });
 
 
-// --- IPC KANALLARI (TAMAMI) ---
 ipcMain.on('minimize-app', (event) => BrowserWindow.fromWebContents(event.sender)?.minimize());
 ipcMain.on('maximize-app', (event) => { const win = BrowserWindow.fromWebContents(event.sender); if (win) { win.isMaximized() ? win.unmaximize() : win.maximize(); } });
 ipcMain.on('close-app', (event) => BrowserWindow.fromWebContents(event.sender)?.close());
