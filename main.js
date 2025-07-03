@@ -110,11 +110,6 @@ autoUpdater.on('update-available', (info) => {
 
 autoUpdater.on('update-not-available', (info) => {
     log.info('Güncelleme bulunamadı, uygulama güncel.');
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Her Şey Yolunda',
-        message: 'Uygulamanız zaten en güncel sürümde.'
-    });
 });
 
 autoUpdater.on('update-downloaded', (info) => {
