@@ -80,7 +80,33 @@
         .CodeMirror-simplescroll-horizontal, .CodeMirror-simplescroll-vertical { background-color: var(--bg-deep); }
         .CodeMirror-simplescroll-horizontal div, .CodeMirror-simplescroll-vertical div { background-color: rgba(136, 136, 136, 0.5); border: none; border-radius: 6px; }
         .CodeMirror-simplescroll-horizontal div:hover, .CodeMirror-simplescroll-vertical div:hover { background-color: rgba(136, 136, 136, 0.8); }
-        #no-file-message { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: var(--text-secondary); }
+        
+        #no-file-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--text-secondary);
+            text-align: center;
+            z-index: 1;
+        }
+        
+        #no-file-message::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            background-image: url('logo.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.05;
+            z-index: -1;
+        }
+
         #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 1000; }
         #modal { background: var(--bg-medium); padding: 2rem 2.5rem; border-radius: 12px; width: 100%; max-width: 450px; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
         #modal-title { margin-top: 0; font-weight: 500; font-size: 1.25rem; }
@@ -91,19 +117,15 @@
         #modal-cancel-btn { background-color: var(--bg-light); color: var(--text-primary); }
         #modal-ok-btn { background-color: var(--accent-blue); color: white; }
 
-        /* CodeMirror Arama Kutusu Stilleri */
         .CodeMirror-dialog { background-color: #2a2d2e; color: var(--text-primary); border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 10px; }
         .CodeMirror-dialog input { background-color: var(--bg-light); border: 1px solid var(--border-color); color: var(--text-primary); padding: 5px 8px; border-radius: 4px; outline: none; transition: all var(--transition-speed) ease; }
         .CodeMirror-dialog input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px var(--accent-blue-transparent); }
         .CodeMirror-search-hint { color: var(--text-secondary); }
-
-        /* YENİ EKLENEN ARAMA STİLLERİ */
-        .CodeMirror-searching { background-color: #f7e7655e !important; }
+        .CodeMirror-searching { background-color: rgba(220, 220, 170, 0.4) !important; }
         #search-status { position: absolute; top: 10px; right: 20px; z-index: 10; background-color: var(--bg-light); color: var(--text-secondary); padding: 5px 10px; border-radius: 4px; font-size: 12px; user-select: none; display: none; box-shadow: 0 2px 8px rgba(0,0,0,0.4); }
     </style>
 </head>
 <body>
-  <!-- BAŞLIK ÇUBUĞU -->
   <div class="title-bar">
       <div class="title-bar-left">
           <img src="logo.png" alt="Cortex IDE Logo" class="title-bar-logo">
@@ -116,10 +138,8 @@
       </div>
   </div>
 
-  <!-- ANA UYGULAMA İÇERİĞİ -->
   <div class="app-container">
     <div class="workspace">
-      <!-- AKTİVİTE ÇUBUĞU (SOL) -->
       <div class="activity-bar">
         <div class="activity-bar-icons">
           <button class="active" title="Explorer"><i class="far fa-copy"></i></button>
@@ -129,7 +149,6 @@
           <button title="Settings" onclick="window.location.href='settings.html'"><i class="fas fa-cog"></i></button>
         </div>
       </div>
-      <!-- KENAR ÇUBUĞU (EXPLORER) -->
       <div id="sidebar">
         <div class="sidebar-header">
             <h2>Explorer</h2>
@@ -143,7 +162,6 @@
         <div class="sidebar-subheader"><div id="current-directory">Yükleniyor...</div></div>
         <ul id="file-list"></ul>
       </div>
-      <!-- ANA İÇERİK (EDİTÖR) -->
       <div id="main-content">
         <div class="editor-header">
           <div id="tab-bar"></div>
@@ -165,7 +183,6 @@
     </div>
   </div>
 
-  <!-- MODAL PENCERE -->
   <div id="modal-overlay">
       <div id="modal">
           <h3 id="modal-title">Başlık</h3>
@@ -179,7 +196,6 @@
   
   <input type="file" id="file-upload-input" style="display: none;" multiple>
 
-  <!-- SCRIPT'LER -->
   <script src="./assets/codemirror/lib/codemirror.js"></script>
   <script src="./assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
   <script src="./assets/codemirror/mode/xml/xml.js"></script>
@@ -192,9 +208,11 @@
   <script src="./assets/codemirror/addon/fold/foldcode.js"></script>
   <script src="./assets/codemirror/addon/fold/foldgutter.js"></script>
   <script src="./assets/codemirror/addon/scroll/simplescrollbars.js"></script>
-  <script src="./assets/codemirror/addon/dialog/dialog.js"></script>
-  <script src="./assets/codemirror/addon/search/searchcursor.js"></script>
   <script src="./assets/codemirror/addon/search/search.js"></script>
+  <script src="./assets/codemirror/addon/search/searchcursor.js"></script>
+  <script src="./assets/codemirror/addon/search/jump-to-line.js"></script>
+  <script src="./assets/codemirror/addon/dialog/dialog.js"></script>
+  <script src="./assets/codemirror/addon/search/matchesonscrollbar.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
