@@ -1,0 +1,16 @@
+{
+  "name": "cortex-renderer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Renderer process dependencies",
+  "main": "renderer.js",
+  "dependencies": {
+    "@codemirror/basic-setup": "^0.20.0",
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.9",
+    "@codemirror/lang-javascript": "^6.2.4",
+    "@codemirror/lang-php": "^6.0.1",
+    "@codemirror/view": "^6.37.2",
+    "codemirror": "^5.65.19"
+  }
+}

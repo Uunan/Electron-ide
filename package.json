@@ -1,28 +1,55 @@
 {
-  "name": "electron",
-  "version": "1.0.0",
+  "name": "cortex-editor",
+  "version": "1.0.0-beta.1",
+  "description": "Cpanel Editor",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "rimraf dist && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "electron": "^36.6.0"
+  "author": "Uunan (https://github.com/Uunan)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Uunan/Electron-ide.git"
   },
   "dependencies": {
-    "@codemirror/basic-setup": "^0.20.0",
-    "@codemirror/lang-css": "^6.3.1",
-    "@codemirror/lang-html": "^6.4.9",
-    "@codemirror/lang-javascript": "^6.2.4",
-    "@codemirror/lang-php": "^6.0.1",
-    "@codemirror/view": "^6.37.2",
     "axios": "^1.9.0",
-    "codemirror": "^5.65.19",
-    "electron-store": "^10.1.0",
-    "form-data": "^4.0.3",
+    "electron-store": "7.0.3",
+    "electron-updater": "^6.6.2",
+    "form-data": "3.0.1",
     "ssh2-sftp-client": "^12.0.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.1",
+    "electron-builder": "^24.13.3",
+    "rimraf": "^5.0.7"
+  },
+  "build": {
+    "appId": "com.uunan.ide",
+    "productName": "Cortex",
+    "files": [
+      "main.js",
+      "src/**/*",
+      "build/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.icns"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Uunan",
+      "repo": "Electron-ide"
+    }
   }
 }

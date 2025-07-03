@@ -1,19 +1,19 @@
-// main.js (ŞİFRELEME ÖZELLİKLİ TAM KOD)
-
-const { app, BrowserWindow, ipcMain } = require('electron');
+// main.js - Stabil CommonJS Sürümü (Yeni Dosya Yollarıyla)
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const axios = require('axios');
 const https = require('https');
 const FormData = require('form-data');
 const { Readable } = require('stream');
-
-// --- YENİ EKLENENLER (ŞİFRELEME İÇİN) ---
 const crypto = require('crypto');
-const Store = require('electron-store').default; // Güvenli veri saklama için .default'u ekleyin
-// Store'u başlat
-const store = new Store();
+const Store = require('electron-store');
+const { autoUpdater } = require('electron-updater');
 
-// --- ŞİFRELEME FONKSİYONLARI ---
+// --- UYGULAMA GENELİ DEĞİŞKENLER ---
+const store = new Store();
+let mainWindow;
+
+// --- ŞİFRELEME KODU ---
 let secretKey = store.get('secretKey');
 if (!secretKey) {
   secretKey = crypto.randomBytes(32).toString('hex');
@@ -45,52 +45,61 @@ function decrypt(hash) {
     return null;
   }
 }
-// --- ŞİFRELEME KODU SONU ---
 
-
+// --- YARDIMCI FONKSİYONLAR ---
 const httpsAgent = new https.Agent({ rejectUnauthorized: false });
 function toPosixPath(p) { return p.replace(/\\/g, '/'); }
 
+// --- ANA PENCERE OLUŞTURMA ---
 function createWindow() {
-    const win = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 1200, height: 800,
         frame: false,
+        icon: path.join(__dirname, 'build/icon.png'),
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js')
+            // YOL GÜNCELLENDİ
+            preload: path.join(__dirname, 'src/preload.js') 
         }
     });
-    win.loadFile('index.html');
-    win.on('maximize', () => win.webContents.send('window-maximized-status', true));
-    win.on('unmaximize', () => win.webContents.send('window-maximized-status', false));
+
+    // YOL GÜNCELLENDİ
+    mainWindow.loadFile(path.join(__dirname, 'src/index.html'));
+    
+    mainWindow.on('maximize', () => mainWindow.webContents.send('window-maximized-status', true));
+    mainWindow.on('unmaximize', () => mainWindow.webContents.send('window-maximized-status', false));
 }
 
-app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+// --- UYGULAMA YAŞAM DÖNGÜSÜ ---
+app.whenReady().then(() => {
+  createWindow();
+  autoUpdater.checkForUpdates();
+  app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+});
 
-// PENCERE KONTROLLERİ
-// DİKKAT: ipcMain.on yerine ipcMain.handle kullanmak daha modern olabilir,
-// ancak mevcut yapıyı bozmamak için on ile devam ediyoruz.
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+// --- OTOMATİK GÜNCELLEME OLAYLARI ---
+autoUpdater.on('update-downloaded', (info) => {
+  const dialogOpts = {
+      type: 'info',
+      buttons: ['Yeniden Başlat', 'Sonra'],
+      title: 'Uygulama Güncellemesi',
+      message: `Uunan IDE'nin yeni sürümü (${info.version}) indirildi.`,
+      detail: 'Değişikliklerin uygulanması için uygulamanın yeniden başlatılması gerekiyor.'
+  };
+  dialog.showMessageBox(dialogOpts).then((returnValue) => {
+      if (returnValue.response === 0) autoUpdater.quitAndInstall();
+  });
+});
+
+// --- IPC KANALLARI (TAMAMI) ---
 ipcMain.on('minimize-app', (event) => BrowserWindow.fromWebContents(event.sender)?.minimize());
 ipcMain.on('maximize-app', (event) => { const win = BrowserWindow.fromWebContents(event.sender); if (win) { win.isMaximized() ? win.unmaximize() : win.maximize(); } });
 ipcMain.on('close-app', (event) => BrowserWindow.fromWebContents(event.sender)?.close());
-
-
-// --- YENİ IPC KANALLARI (ŞİFRELEME İÇİN) ---
-// Not: invoke/handle çifti, asenkron ve değer döndüren işlemler için daha uygundur.
-ipcMain.handle('encrypt-string', (event, text) => {
-  return encrypt(text);
-});
-
-ipcMain.handle('decrypt-string', (event, hash) => {
-  return decrypt(hash);
-});
-// --- YENİ IPC KANALLARI SONU ---
-
-
-// API IPC HANDLERS (Bu kısımda değişiklik yok)
+ipcMain.handle('encrypt-string', (event, text) => encrypt(text));
+ipcMain.handle('decrypt-string', (event, hash) => decrypt(hash));
 ipcMain.on('list-files', async (event, { dirPath, credentials }) => { try { if (!credentials) throw new Error('Kimlik bilgileri eksik.'); const authHeader = `cpanel ${credentials.username}:${credentials.token}`; const posixPath = toPosixPath(dirPath); const response = await axios.get(`${credentials.domain}/execute/Fileman/list_files`, { params: { dir: posixPath }, headers: { Authorization: authHeader }, httpsAgent }); if (response.data?.status === 1) { event.reply('files-listed', { success: true, files: response.data.data, currentDir: posixPath }); } else { event.reply('files-listed', { success: false, error: 'API Error', currentDir: posixPath }); } } catch (error) { event.reply('files-listed', { success: false, error: error.message, currentDir: dirPath }); }});
 ipcMain.on('get-file-content', async (event, { filePath, credentials }) => { try { if (!credentials) throw new Error('Kimlik bilgileri eksik.'); const authHeader = `cpanel ${credentials.username}:${credentials.token}`; const posixPath = toPosixPath(filePath); const dir = path.posix.dirname(posixPath); const file = path.posix.basename(posixPath); const response = await axios.get(`${credentials.domain}/execute/Fileman/get_file_content`, { params: { file, dir }, headers: { Authorization: authHeader }, httpsAgent }); if (response.data?.data && (typeof response.data.data.content === 'string' || response.data.data.content === null)) { event.reply('file-content-loaded', { success: true, content: response.data.data.content || '', filePath: posixPath, charset: response.data.data.from_charset }); } else { event.reply('file-content-loaded', { success: false, error: response.data, filePath: posixPath }); } } catch (error) { event.reply('file-content-loaded', { success: false, error: error.response?.data || error.message, filePath }); }});
 ipcMain.on('save-file-content', async (event, { filePath, content, charset, credentials }) => { try { if (!credentials) throw new Error('Kimlik bilgileri eksik.'); const authHeader = `cpanel ${credentials.username}:${credentials.token}`; const posixPath = toPosixPath(filePath); const dir = path.posix.dirname(posixPath); const file = path.posix.basename(posixPath); await axios.post(`${credentials.domain}/execute/Fileman/save_file_content`, null, { params: { file, dir, content, charset }, headers: { Authorization: authHeader }, httpsAgent }); event.reply('file-saved', { success: true, filePath: posixPath }); } catch (error) { event.reply('file-saved', { success: false, error: error.message, filePath }); }});
