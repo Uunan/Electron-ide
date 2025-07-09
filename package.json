@@ -1,6 +1,6 @@
 {
   "name": "cortex-editor",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Cpanel Editor",
   "main": "main.js",
   "scripts": {

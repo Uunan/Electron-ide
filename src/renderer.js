@@ -1,15 +1,17 @@
-
 document.addEventListener('DOMContentLoaded', () => {
+    // --- SABİTLER ve DEĞİŞKENLER ---
     const SETTINGS_KEY = 'cpanel-editor-settings';
     const ACCOUNTS_KEY = 'cpanel-accounts';
     const defaultSettings = { fontSize: 14, tabSize: 4, lineNumbers: true, wordWrap: false, autoCloseTags: true, initialDir: '/home/ugurhancolak', rejectUnauthorized: false, autoSaveInterval: 0 };
-
+    
     const openFiles = new Map();
     let currentSettings = {};
     let activeFilePath = null;
     let currentDirectory = '/';
     let autoSaveTimer = null;
+    let currentModalCallback = null;
 
+    // --- DOM ELEMENTLERİ ---
     const fileListElement = document.getElementById('file-list');
     const currentDirectoryElement = document.getElementById('current-directory');
     const newFileBtn = document.getElementById('new-file-btn');
@@ -31,20 +33,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const maximizeBtn = document.getElementById('maximize-btn');
     const closeBtn = document.getElementById('close-btn');
     const searchStatusElement = document.getElementById('search-status');
-    let currentModalCallback = null;
+    const feedbackBtn = document.getElementById('feedback-btn');
+    const feedbackModalOverlay = document.getElementById('feedback-modal-overlay');
+    const feedbackForm = document.getElementById('feedback-form');
+    const feedbackCancelBtn = document.getElementById('feedback-cancel-btn');
+    const feedbackSubmitBtn = document.getElementById('feedback-submit-btn');
 
+    // --- YARDIMCI FONKSİYONLAR ---
     function getBasename(filePath) { return filePath.substring(filePath.lastIndexOf('/') + 1); }
 
     async function getActiveCredentials() {
         const accounts = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || '[]');
         const activeAccount = accounts.find(acc => acc.isActive);
         if (!activeAccount) { window.location.href = 'accounts.html'; return null; }
-        if (!activeAccount.token) { alert('Aktif hesabın API token bilgisi eksik.'); return null; }
+        if (!activeAccount.token) { alert('Aktif hesap için token bulunamadı.'); return null; }
         const decryptedToken = await window.electronAPI.decryptString(activeAccount.token);
         if (!decryptedToken) { alert('API token şifresi çözülemedi. Lütfen hesabı silip yeniden ekleyin.'); return null; }
         return { domain: activeAccount.domain, username: activeAccount.username, token: decryptedToken };
     }
 
+    // --- AYAR YÖNETİMİ ---
     function loadSettings() {
         const savedSettings = localStorage.getItem(SETTINGS_KEY);
         return { ...defaultSettings, ...(savedSettings ? JSON.parse(savedSettings) : {}) };
@@ -71,6 +79,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- DOSYA YÖNETİMİ FONKSİYONLARI ---
+    async function refreshFileList(dirPath = currentDirectory) {
+        const credentials = await getActiveCredentials();
+        if (credentials) {
+            window.electronAPI.send('list-files', { dirPath, credentials });
+        }
+    }
+
     async function saveActiveFile(force = false) {
         const credentials = await getActiveCredentials();
         if (!credentials || !activeFilePath || !openFiles.has(activeFilePath)) return;
@@ -82,18 +98,40 @@ document.addEventListener('DOMContentLoaded', () => {
         window.electronAPI.send('save-file-content', { filePath: activeFilePath, content, charset, credentials });
     }
 
-    function clearSearch(editor) {
-    if (!editor) return;
-    editor.execCommand("clearSearch"); 
-    searchStatusElement.style.display = 'none';
-}
-
-    function updateSearchState(editor) {
+    async function performFileOperation({ op, source, dest, metadata }) {
+        const credentials = await getActiveCredentials();
+        if (!credentials) {
+            alert("İşlem yapılamadı: Aktif kullanıcı kimlik bilgileri alınamadı.");
+            return;
+        }
         
+        console.log('Performing operation with:', { op, source, dest, metadata });
+        const result = await window.electronAPI.fileOperation({ op, source, dest, metadata, credentials });
+        
+        if (result.success) {
+            console.log('Operation successful:', result);
+            refreshFileList();
+        } else {
+            console.error('Operation failed:', result);
+            alert(`İşlem başarısız: ${result.error}`);
+        }
     }
-    
-    CodeMirror.defineInitHook(function (cm) { cm.on("keydown", function (cm, e) { if (e.key === 'Escape' && !document.querySelector('.CodeMirror-dialog')) { clearSearch(cm); } }); });
 
+    // --- KOD EDİTÖRÜ (CodeMirror) VE TAB YÖNETİMİ ---
+    function clearSearch(editor) {
+        if (editor) {
+            editor.execCommand("clearSearch");
+            searchStatusElement.style.display = 'none';
+        }
+    }
+
+    CodeMirror.defineInitHook(function(cm) {
+        cm.on("keydown", function(cm, e) {
+            if (e.key === 'Escape' && !document.querySelector('.CodeMirror-dialog')) {
+                clearSearch(cm);
+            }
+        });
+    });
 
     function createCodeMirrorInstance(container, filePath, content = '') {
         const editor = CodeMirror(container, {
@@ -113,19 +151,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const extension = filePath.split('.').pop().toLowerCase();
         let mode = 'null';
         switch (extension) {
-            case 'html': mode = 'htmlmixed'; break; case 'css': mode = 'css'; break;
-            case 'js': mode = 'javascript'; break; case 'json': mode = { name: "javascript", json: true }; break;
+            case 'html': mode = 'htmlmixed'; break;
+            case 'css': mode = 'css'; break;
+            case 'js': mode = 'javascript'; break;
+            case 'json': mode = { name: "javascript", json: true }; break;
             case 'php': mode = 'php'; break;
         }
         editor.setOption("mode", mode);
     }
-    
+
     function activateTab(filePath) {
         tabBarElement.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
         editorContainerWrapperElement.querySelectorAll('.editor-instance').forEach(editorDiv => editorDiv.style.display = 'none');
-        
-        const fileInfo = openFiles.get(filePath);
-        if (fileInfo) {
+        if (filePath && openFiles.has(filePath)) {
+            const fileInfo = openFiles.get(filePath);
             fileInfo.tabElement.classList.add('active');
             fileInfo.editorContainerElement.style.display = 'block';
             setTimeout(() => fileInfo.codeMirrorInstance.refresh(), 1);
@@ -143,32 +182,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeTab(filePath) {
         const fileInfo = openFiles.get(filePath);
-        if (!fileInfo) return; 
-
+        if (!fileInfo) return;
         if (fileInfo.tabElement.querySelector('.tab-label').style.fontStyle === 'italic') {
             if (!confirm("Kaydedilmemiş değişiklikler var. Kapatmak istediğinizden emin misiniz?")) {
                 return;
             }
         }
-
-     
         clearSearch(fileInfo.codeMirrorInstance);
-        
         fileInfo.tabElement.remove();
         fileInfo.editorContainerElement.remove();
-        
         openFiles.delete(filePath);
-        
         if (activeFilePath === filePath) {
             const remainingFiles = Array.from(openFiles.keys());
-            if (remainingFiles.length > 0) {
-                activateTab(remainingFiles[0]);
-            } else {
-                activateTab(null);
-            }
+            activateTab(remainingFiles.length > 0 ? remainingFiles[0] : null);
         }
     }
 
+    // --- IPC OLAY DİNLEYİCİLERİ (MAIN -> RENDERER) ---
     window.electronAPI.on('files-listed', ({ success, files, error, currentDir }) => {
         fileListElement.innerHTML = '';
         currentDirectoryElement.textContent = currentDir;
@@ -185,7 +215,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileListElement.appendChild(backItem);
             }
         }
-        
         files.sort((a, b) => {
             if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
             return a.file.localeCompare(b.file, undefined, { numeric: true, sensitivity: 'base' });
@@ -200,20 +229,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.electronAPI.on('file-content-loaded', ({ success, content, error, filePath, charset }) => {
         if (!success) { alert(`Dosya içeriği yüklenemedi: ${error}`); return; }
-        
         const tab = document.createElement('div');
         tab.className = 'tab';
         tab.dataset.path = filePath;
         tab.innerHTML = `<i class="far fa-file-alt"></i> <span class="tab-label">${getBasename(filePath)}</span> <i class="close-tab">×</i>`;
-
         const editorDiv = document.createElement('div');
         editorDiv.className = 'editor-instance';
         editorDiv.style.display = 'none';
-
         tabBarElement.appendChild(tab);
         editorContainerWrapperElement.appendChild(editorDiv);
         const editor = createCodeMirrorInstance(editorDiv, filePath, content);
-        
         editor.on('change', () => {
             const info = openFiles.get(filePath);
             if (info) {
@@ -224,16 +249,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-
         openFiles.set(filePath, { tabElement: tab, editorContainerElement: editorDiv, codeMirrorInstance: editor, currentCharset: charset });
         activateTab(filePath);
     });
 
-    window.electronAPI.on('file-saved', ({ success, filePath }) => { if (success && openFiles.has(filePath)) { openFiles.get(filePath).tabElement.querySelector('.tab-label').style.fontStyle = 'normal'; } });
-    window.electronAPI.on('item-created', async ({ success, error, dir }) => { if (success) { const creds = await getActiveCredentials(); if(creds) window.electronAPI.send('list-files', { dirPath: dir, credentials: creds }); } else { alert(`Öğe oluşturulamadı: ${error}`); } });
-    window.electronAPI.on('file-uploaded', async ({ success, error, fileName, targetDir }) => { if (success && targetDir === currentDirectory) { const creds = await getActiveCredentials(); if(creds) window.electronAPI.send('list-files', { dirPath: targetDir, credentials: creds }); } else if (!success) { alert(`${fileName} yüklenirken hata oluştu: ${error}`); } });
-    window.electronAPI.onWindowMaximizedStatus((isMaximized) => { maximizeBtn.querySelector('i').className = isMaximized ? 'far fa-window-restore' : 'far fa-window-maximize'; });
+    window.electronAPI.on('file-saved', ({ success, filePath }) => {
+        if (success && openFiles.has(filePath)) {
+            openFiles.get(filePath).tabElement.querySelector('.tab-label').style.fontStyle = 'normal';
+        }
+    });
 
+    window.electronAPI.on('item-created', ({ success, error, dir }) => {
+        if (success) {
+            refreshFileList(dir);
+        } else {
+            alert(`Öğe oluşturulamadı: ${error}`);
+        }
+    });
+
+    window.electronAPI.onWindowMaximizedStatus((isMaximized) => {
+        maximizeBtn.querySelector('i').className = isMaximized ? 'far fa-window-restore' : 'far fa-window-maximize';
+    });
+
+    window.electronAPI.on('context-menu-action', async ({ action, path: filePath }) => {
+        const fileName = getBasename(filePath);
+        switch (action) {
+            case 'rename-file': {
+                showPromptModal(`'${fileName}' için yeni isim`, async (newName) => {
+                    if (newName && newName.trim() !== '' && newName !== fileName) {
+                        const dirPath = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+                        const destPath = dirPath + newName.trim();
+                        await performFileOperation({ op: 'rename', source: filePath, dest: destPath });
+                    }
+                });
+                document.getElementById('modal-input').value = fileName;
+                break;
+            }
+            case 'delete-file': {
+                if (confirm(`'${fileName}' dosyasını silmek istediğinizden emin misiniz? Bu işlem, dosyayı çöp kutusuna taşıyacaktır.`)) {
+                    await performFileOperation({ op: 'trash', source: filePath });
+                }
+                break;
+            }
+        }
+    });
+
+    // --- UI OLAY DİNLEYİCİLERİ ---
     fileListElement.addEventListener('click', async (event) => {
         const target = event.target.closest('li');
         if (!target || !target.dataset.path) return;
@@ -245,6 +306,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             if (openFiles.has(filePath)) activateTab(filePath);
             else window.electronAPI.send('get-file-content', { filePath, credentials });
+        }
+    });
+
+    fileListElement.addEventListener('contextmenu', (event) => {
+        event.preventDefault();
+        const target = event.target.closest('li');
+        if (target && target.dataset.path) {
+            window.electronAPI.showContextMenu(target.dataset.path);
         }
     });
 
@@ -260,51 +329,138 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     tabBarElement.addEventListener('mousedown', (event) => {
-        if (event.button !== 1) return;
-        const tab = event.target.closest('.tab');
-        if (tab) {
-            event.preventDefault();
-            const filePath = tab.dataset.path;
-            closeTab(filePath);
+        if (event.button === 1) { // Orta tuş
+            const tab = event.target.closest('.tab');
+            if (tab) {
+                event.preventDefault();
+                closeTab(tab.dataset.path);
+            }
         }
     });
 
-    window.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveActiveFile(true); } });
-    encodingSelector.addEventListener('change', () => saveActiveFile(true));
-    autoSaveToggle.addEventListener('change', (event) => { const s = loadSettings(); s.autoSaveInterval = event.target.checked ? (s.autoSaveInterval === 0 ? 5 : s.autoSaveInterval) : 0; saveSettings(s); applySettings(); });
-    
-    function showPromptModal(title, callback) { modalTitle.textContent = title; modalInput.value = ''; currentModalCallback = callback; modalOverlay.style.display = 'flex'; modalInput.focus(); }
-    function hidePromptModal() { modalOverlay.style.display = 'none'; currentModalCallback = null; }
+    window.addEventListener('keydown', async (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            await saveActiveFile(true);
+        }
+    });
 
-    newFileBtn.addEventListener('click', () => showPromptModal('Yeni Dosya', async (name) => { if (name) { const creds = await getActiveCredentials(); if(creds) window.electronAPI.send('create-item', { type: 'file', dir: currentDirectory, name, credentials: creds }); }}));
-    newFolderBtn.addEventListener('click', () => showPromptModal('Yeni Klasör', async (name) => { if (name) { const creds = await getActiveCredentials(); if(creds) window.electronAPI.send('create-item', { type: 'dir', dir: currentDirectory, name, credentials: creds }); }}));
     fileUploadBtn.addEventListener('click', () => fileUploadInput.click());
-    
     fileUploadInput.addEventListener('change', async (event) => {
         const credentials = await getActiveCredentials();
         if (!credentials) return;
-        for (const file of event.target.files) {
-            const reader = new FileReader();
-            reader.onload = (e) => window.electronAPI.send('upload-file', { fileBuffer: new Uint8Array(e.target.result), fileName: file.name, targetDir: currentDirectory, credentials });
-            reader.readAsArrayBuffer(file);
+        
+        const uploadPromises = Array.from(event.target.files).map(file => {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const result = await window.electronAPI.uploadFile({
+                        fileBuffer: new Uint8Array(e.target.result), fileName: file.name,
+                        targetDir: currentDirectory, credentials
+                    });
+                    resolve(result);
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        });
+
+        const results = await Promise.all(uploadPromises);
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+            const errorMessages = failedUploads.map(r => `${r.fileName}: ${r.error}`).join('\n');
+            alert(`Bazı dosyalar yüklenemedi:\n${errorMessages}`);
         }
+        
+        refreshFileList();
         event.target.value = '';
     });
-
-    modalOkBtn.addEventListener('click', () => { if (currentModalCallback) currentModalCallback(modalInput.value.trim()); hidePromptModal(); });
-    modalCancelBtn.addEventListener('click', hidePromptModal);
-    minimizeBtn.addEventListener('click', () => window.electronAPI.minimize());
-    maximizeBtn.addEventListener('click', () => window.electronAPI.maximize());
-    closeBtn.addEventListener('click', () => window.electronAPI.close());
     
+    function showPromptModal(title, callback) {
+        modalTitle.textContent = title;
+        modalInput.value = '';
+        currentModalCallback = callback;
+        modalOverlay.style.display = 'flex';
+        modalInput.focus();
+    }
+    
+    function hidePromptModal() {
+        modalOverlay.style.display = 'none';
+        currentModalCallback = null;
+    }
+
+    newFileBtn.addEventListener('click', () => showPromptModal('Yeni Dosya Adı', async (name) => {
+        if (name) {
+            const creds = await getActiveCredentials();
+            if(creds) window.electronAPI.send('create-item', { type: 'file', dir: currentDirectory, name, credentials: creds });
+        }
+    }));
+    
+    newFolderBtn.addEventListener('click', () => showPromptModal('Yeni Klasör Adı', async (name) => {
+        if (name) {
+            const creds = await getActiveCredentials();
+            if(creds) window.electronAPI.send('create-item', { type: 'dir', dir: currentDirectory, name, credentials: creds });
+        }
+    }));
+
+    modalOkBtn.addEventListener('click', () => {
+        if (currentModalCallback) {
+            currentModalCallback(modalInput.value.trim());
+        }
+        hidePromptModal();
+    });
+    
+    modalCancelBtn.addEventListener('click', hidePromptModal);
+    
+    minimizeBtn.addEventListener('click', () => window.electronAPI.send('minimize-app'));
+    maximizeBtn.addEventListener('click', () => window.electronAPI.send('maximize-app'));
+    closeBtn.addEventListener('click', () => window.electronAPI.send('close-app'));
+    
+    encodingSelector.addEventListener('change', () => saveActiveFile(true));
+    
+    autoSaveToggle.addEventListener('change', (event) => {
+        const s = loadSettings();
+        s.autoSaveInterval = event.target.checked ? (s.autoSaveInterval === 0 ? 5 : s.autoSaveInterval) : 0;
+        saveSettings(s);
+        applySettings();
+    });
+    
+    feedbackBtn.addEventListener('click', () => { feedbackModalOverlay.style.display = 'flex'; });
+    feedbackCancelBtn.addEventListener('click', () => { feedbackModalOverlay.style.display = 'none'; });
+    
+    feedbackForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const feedbackType = document.getElementById('feedback-type').value;
+        const message = document.getElementById('feedback-message').value;
+        const email = document.getElementById('feedback-email').value;
+        const appVersion = await window.electronAPI.getAppVersion();
+        const appName = 'Cortex IDE';
+        
+        feedbackSubmitBtn.disabled = true;
+        feedbackSubmitBtn.textContent = 'Gönderiliyor...';
+        try {
+            const response = await fetch('https://SITENIZIN_DOMAINI.com/api/submit_feedback.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedback_type: feedbackType, message, contact_email: email, app_version: appVersion, app_name: appName })
+            });
+            const result = await response.json();
+            if (!response.ok || result.status !== 'success') throw new Error(result.message || 'Bilinmeyen sunucu hatası.');
+            alert('Geri bildiriminiz için teşekkür ederiz!');
+            feedbackForm.reset();
+            feedbackModalOverlay.style.display = 'none';
+        } catch (error) {
+            alert(`Geri bildirim gönderilemedi: ${error.message}`);
+        } finally {
+            feedbackSubmitBtn.disabled = false;
+            feedbackSubmitBtn.textContent = 'Gönder';
+        }
+    });
+
+    // --- BAŞLATMA ---
     async function initializeApp() {
         noFileMessageElement.style.display = 'block';
         applySettings();
-        const credentials = await getActiveCredentials();
-        if (credentials) {
-            const startDir = currentSettings.initialDir || `/home/${credentials.username}`;
-            window.electronAPI.send('list-files', { dirPath: startDir, credentials });
-        }
+        await refreshFileList(currentSettings.initialDir);
     }
 
     initializeApp();
