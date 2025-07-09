@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
         feedbackSubmitBtn.disabled = true;
         feedbackSubmitBtn.textContent = 'Gönderiliyor...';
         try {
-            const response = await fetch('https://SITENIZIN_DOMAINI.com/api/submit_feedback.php', {
+            const response = await fetch('https://unanstudio.com/api/submit_feedback.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ feedback_type: feedbackType, message, contact_email: email, app_version: appVersion, app_name: appName })
